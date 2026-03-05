@@ -13,6 +13,7 @@ const Contact = () => {
   const [isSending, setIsSending] = useState(false);
   const navigate = useNavigate();
 
+  const API_BASE_URL = "https://xplore-math-learning-app-backend.vercel.app";
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -58,7 +59,7 @@ const Contact = () => {
         setError('Send failed: ' + err.text);
         setIsSending(false);
       });
-    fetch('http://localhost:5000/api/contact', {
+    fetch(`${API_BASE_URL}/api/contact`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, message: description })

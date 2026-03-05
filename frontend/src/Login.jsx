@@ -12,7 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-
+  const API_BASE_URL = "https://xplore-math-learning-app-backend.vercel.app";
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -28,7 +28,7 @@ const Login = () => {
       const endpoint = isLogin ? '/api/login' : '/api/register';
       const payload = isLogin ? { email, password } : { name, email, password };
 
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -58,7 +58,7 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = `${API_BASE_URL}/api/auth/google`;
   };
 
   return (

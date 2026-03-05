@@ -12,7 +12,10 @@ const app = express();
 
 // 1. Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+  origin: [
+    'https://xplore-math-learning-app.vercel.app', 
+    'http://localhost:5173'
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -29,7 +32,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:5000/api/auth/google/callback"
+    callbackURL: "https://xplore-math-learning-app-backend.vercel.app/api/auth/google/callback"
   },
   (accessToken, refreshToken, profile, done) => {
     try {
@@ -64,9 +67,9 @@ app.get('/api/auth/google',
 );
 
 app.get('/api/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login' }),
+  passport.authenticate('google', { failureRedirect: 'https://xplore-math-learning-app.vercel.app/login' }),
   (req, res) => {
-    res.redirect('http://localhost:5173/home'); 
+    res.redirect('https://xplore-math-learning-app.vercel.app/home'); 
   }
 );
 

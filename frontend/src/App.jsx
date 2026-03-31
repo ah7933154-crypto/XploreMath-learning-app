@@ -5,7 +5,6 @@ import Home from './Home';
 import About from './About';
 import Select from './Select';
 import Questions from './Questions'
-import Notes from './Notes'
 import Formulas from './Formulas'
 import Test from './Test'
 import Forum from './Forum'
@@ -21,7 +20,6 @@ const App = () => {
         <Route path="/about" element={<About />} />
         <Route path="/select" element={<Select />} />
         <Route path="/questions" element={<Questions />} />
-        <Route path="/Notes" element={<Notes />} />
         <Route path="/formulas" element={<Formulas />} />
         <Route path="/test" element={<Test />} />
         <Route path="/forum" element={<Forum />} />

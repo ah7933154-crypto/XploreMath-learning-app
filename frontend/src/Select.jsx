@@ -52,19 +52,6 @@ const Select = () => {
               </div>
             </div>
 
-            <div className="option-card" onClick={() => navigate('/notes')}>
-              <div className="option-icon-wrapper">
-                <BookOpen size={32} />
-              </div>
-              <div className="option-content">
-                <h3>Notes</h3>
-                <p>Deep dive into comprehensive study material</p>
-              </div>
-              <div className="option-arrow">
-                <ChevronLeft size={20} style={{ transform: 'rotate(180deg)' }} />
-              </div>
-            </div>
-
             <div className="option-card" onClick={() => navigate('/formulas')}>
               <div className="option-icon-wrapper">
                 <Calculator size={32} />

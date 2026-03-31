@@ -4,10 +4,13 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const serverless = require('serverless-http');
 const db = require('./database');
 
 const app = express();
-const uploadsDir = path.join(__dirname, 'uploads');
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+const dataDir = process.env.DATA_DIR || (isServerless ? '/tmp/data' : __dirname);
+const uploadsDir = path.join(dataDir, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -78,5 +81,9 @@ app.post('/api/notes/upload', upload.array('files'), (req, res) => {
   res.json({ success: true, uploaded: uploadedFiles });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+}
+
+module.exports = isServerless ? serverless(app) : app;

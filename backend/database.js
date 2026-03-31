@@ -1,6 +1,13 @@
+const path = require('path');
+const fs = require('fs');
 const Database = require('better-sqlite3');
 
-const db = new Database('xploremath.db');
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+const dataDir = process.env.DB_DIR || (isServerless ? '/tmp/data' : __dirname);
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+const dbPath = path.join(dataDir, 'xploremath.db');
+const db = new Database(dbPath);
 
 // create tables if not exist
 

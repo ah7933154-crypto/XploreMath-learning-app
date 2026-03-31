@@ -46,7 +46,7 @@ const Notes = () => {
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5173';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   useEffect(() => {
     fetchSharedFiles(selectedChapter.id);
@@ -55,11 +55,15 @@ const Notes = () => {
   const fetchSharedFiles = async (chapterId) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/notes/${chapterId}`);
-      if (!response.ok) throw new Error('Could not load shared notes');
-      const data = await response.json();
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(text || `Could not load shared notes (status ${response.status})`);
+      }
+      const data = text ? JSON.parse(text) : [];
       setSharedFiles(data);
       setMessage('');
     } catch (err) {
+      console.error('fetchSharedFiles error', err);
       setSharedFiles([]);
       setMessage('Unable to load shared notes.');
     }
@@ -81,14 +85,16 @@ const Notes = () => {
         method: 'POST',
         body: formData,
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Upload failed');
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || text || `Upload failed (${response.status})`);
       }
       setMessage('Notes uploaded successfully. Everyone can now see them.');
       await fetchSharedFiles(chapterId);
       event.target.value = '';
     } catch (err) {
+      console.error('handleFileUpload error', err);
       setMessage(err.message || 'Upload failed. Try again.');
     } finally {
       setUploading(false);

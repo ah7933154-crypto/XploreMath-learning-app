@@ -1,121 +1,82 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
-const db = require('./database'); 
-const jwt = require('jsonwebtoken');
-const passport = require('passport');
-const session = require('express-session');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const db = require('./database');
 
-const app = express(); 
+const app = express();
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-// 1. Middleware
+const storage = multer.diskStorage({
+  destination: uploadsDir,
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname.replace(/\s+/g, '_')}`;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
+
+// create shared notes storage table
+db.prepare(`
+CREATE TABLE IF NOT EXISTS note_uploads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  chapterId INTEGER,
+  originalName TEXT,
+  filename TEXT,
+  url TEXT,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+`).run();
+
+// Middleware
 app.use(cors({
   origin: [
-    'https://xplore-math-learning-app.vercel.app', 
+    'https://xplore-math-learning-app.vercel.app',
     'http://localhost:5173'
   ],
   credentials: true
 }));
 app.use(express.json());
+app.use('/uploads', express.static(uploadsDir));
 
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'mystringishere', 
-  resave: false,
-  saveUninitialized: false 
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "https://xplore-math-learning-app-backend.vercel.app/api/auth/google/callback"
-  },
-  (accessToken, refreshToken, profile, done) => {
-    try {
-      const email = profile.emails[0].value;
-      const name = profile.displayName;
-
-      let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-
-      if (!user) {
-        const insert = db.prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)');
-        const result = insert.run(name, email, 'OAUTH_USER');
-        user = { id: result.lastInsertRowid, name, email };
-      }
-      return done(null, user);
-    } catch (err) {
-      return done(err, null);
-    }
-  }
-));
-
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
-
-// --- ROUTES ---
-
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Backend is running' });
 });
 
-app.get('/api/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
-
-app.get('/api/auth/google/callback', 
-  passport.authenticate('google', { failureRedirect: 'https://xplore-math-learning-app.vercel.app/login' }),
-  (req, res) => {
-    res.redirect('https://xplore-math-learning-app.vercel.app/home'); 
-  }
-);
-
-app.post('/api/register', async (req, res) => {
-  const { name, email, password } = req.body;
-  try {
-    const existingUser = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Email already registered.' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    db.prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)')
-      .run(name, email, hashedPassword);
-    
-    res.status(201).json({ success: true, message: 'Account created!' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error during registration.' });
-  }
+app.get('/api/notes', (req, res) => {
+  const notes = db.prepare('SELECT * FROM note_uploads ORDER BY createdAt DESC').all();
+  res.json(notes);
 });
 
-
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-    
-    if (user && await bcrypt.compare(password, user.password)) {
-      // Generate a JWT Token
-      const token = jwt.sign(
-        { id: user.id, email: user.email }, 
-        process.env.JWT_SECRET, 
-        { expiresIn: '24h' }
-      );
-
-      res.json({ 
-        success: true, 
-        token, 
-        user: { id: user.id, name: user.name, email: user.email } 
-      });
-    } else {
-      res.status(401).json({ success: false, message: 'Invalid email or password.' });
-    }
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error during login.' });
-  }
+app.get('/api/notes/:chapterId', (req, res) => {
+  const chapterId = Number(req.params.chapterId);
+  const notes = db.prepare('SELECT * FROM note_uploads WHERE chapterId = ? ORDER BY createdAt DESC').all(chapterId);
+  res.json(notes);
 });
+
+app.post('/api/notes/upload', upload.array('files'), (req, res) => {
+  const { chapterId } = req.body;
+  if (!chapterId) return res.status(400).json({ success: false, message: 'chapterId is required' });
+  if (!req.files || req.files.length === 0) return res.status(400).json({ success: false, message: 'No files uploaded' });
+
+  const uploadedFiles = req.files.map((file) => {
+    const url = `/uploads/${file.filename}`;
+    db.prepare('INSERT INTO note_uploads (chapterId, originalName, filename, url) VALUES (?, ?, ?, ?)')
+      .run(chapterId, file.originalname, file.filename, url);
+    return {
+      chapterId: Number(chapterId),
+      originalName: file.originalname,
+      filename: file.filename,
+      url,
+    };
+  });
+
+  res.json({ success: true, uploaded: uploadedFiles });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

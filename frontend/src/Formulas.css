@@ -31,19 +31,23 @@
 .blob-2 { bottom: -200px; left: -100px; }
 
 /* Container */
-.formulas-container { max-width: 1200px; margin: 0 auto; padding: 40px 5%; position: relative; z-index: 1; }
+.formulas-container { max-width: 1200px; margin: 0 auto ; padding: 40px 5% 40px; position: relative;}
 
 .back-link {
   background: none; border: none; display: flex; align-items: center; gap: 8px;
-  color: var(--text-muted); font-weight: 600; cursor: pointer; padding: 10px 16px; border-radius: 100px;
+  color: var(--text-muted); font-weight: 600; cursor: pointer; padding: 10px 16px 16px; border-radius: 100px;
+
 }
 
+.formulas-title-section{
+  margin-top: 100px;
+}
 .back-link:hover { color: var(--primary); background: rgba(45, 213, 40, 0.05); }
 
 .formulas-badge {
   display: inline-block; padding: 6px 14px; background: rgba(45, 213, 40, 0.1);
   color: var(--primary-dark); border-radius: 100px; font-weight: 700; font-size: 0.75rem;
-  text-transform: uppercase; margin-bottom: 16px;
+  text-transform: uppercase;
 }
 
 .formulas-main-title { font-size: 3rem; font-weight: 800; margin-top: 10px; }

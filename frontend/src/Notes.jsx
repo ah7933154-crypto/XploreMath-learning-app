@@ -42,38 +42,57 @@ const chapters = [
 
 const Notes = () => {
   const [selectedChapter, setSelectedChapter] = useState(chapters[0]);
-  const [userFiles, setUserFiles] = useState(() => {
-    try {
-      const storedFiles = localStorage.getItem('userFiles');
-      return storedFiles ? JSON.parse(storedFiles) : {};
-    } catch { return {}; }
-  });
-
+  const [sharedFiles, setSharedFiles] = useState([]);
+  const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5173';
 
   useEffect(() => {
-    localStorage.setItem('userFiles', JSON.stringify(userFiles));
-  }, [userFiles]);
+    fetchSharedFiles(selectedChapter.id);
+  }, [selectedChapter.id]);
 
-  const handleFileUpload = (event, chapterId) => {
-    const files = event.target.files;
-    if (files.length > 0) {
-      const newFiles = Array.from(files).map(file => ({
-        name: file.name,
-        type: file.type,
-        url: URL.createObjectURL(file),
-      }));
-      setUserFiles(prev => ({ ...prev, [chapterId]: [...(prev[chapterId] || []), ...newFiles] }));
+  const fetchSharedFiles = async (chapterId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes/${chapterId}`);
+      if (!response.ok) throw new Error('Could not load shared notes');
+      const data = await response.json();
+      setSharedFiles(data);
+      setMessage('');
+    } catch (err) {
+      setSharedFiles([]);
+      setMessage('Unable to load shared notes.');
     }
   };
 
-  const handleFileDelete = (chapterId, fileIndex) => {
-    setUserFiles(prev => {
-      const updated = [...(prev[chapterId] || [])];
-      URL.revokeObjectURL(updated[fileIndex].url);
-      updated.splice(fileIndex, 1);
-      return { ...prev, [chapterId]: updated };
-    });
+  const handleFileUpload = async (event, chapterId) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    setMessage('');
+
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    formData.append('chapterId', chapterId);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Upload failed');
+      }
+      setMessage('Notes uploaded successfully. Everyone can now see them.');
+      await fetchSharedFiles(chapterId);
+      event.target.value = '';
+    } catch (err) {
+      setMessage(err.message || 'Upload failed. Try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -132,20 +151,25 @@ const Notes = () => {
                   <div className="upload-zone">
                     <label className="upload-btn">
                       <input type="file" multiple className="hidden" onChange={(e) => handleFileUpload(e, selectedChapter.id)} />
-                      <Upload size={18} /> Upload Notes
+                      <Upload size={18} /> {uploading ? 'Uploading...' : 'Upload Notes'}
                     </label>
                   </div>
 
+                  {message && <div className={`notes-message ${message.includes('successfully') ? 'success' : 'error'}`}>{message}</div>}
+
                   <div className="files-list">
-                    {userFiles[selectedChapter.id]?.map((file, idx) => (
-                      <div key={idx} className="file-item-card">
-                        <div className="file-info">
-                          <div className="file-type-icon"><FileCheck size={20} /></div>
-                          <a href={file.url} target="_blank" rel="noreferrer" className="file-name">{file.name}</a>
+                    {sharedFiles.length === 0 ? (
+                      <p className="empty-files">No shared notes uploaded yet. Upload to share with everyone.</p>
+                    ) : (
+                      sharedFiles.map((file, idx) => (
+                        <div key={idx} className="file-item-card">
+                          <div className="file-info">
+                            <div className="file-type-icon"><FileCheck size={20} /></div>
+                            <a href={`${API_BASE_URL}${file.url}`} target="_blank" rel="noreferrer" className="file-name">{file.originalName}</a>
+                          </div>
                         </div>
-                        <button className="delete-file" onClick={() => handleFileDelete(selectedChapter.id, idx)}><Trash2 size={16} /></button>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

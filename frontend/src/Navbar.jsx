@@ -46,12 +46,6 @@ const Navbar = () => {
               </button>
             </li>
           ))}
-          <li>
-            <button className="btn-login" onClick={() => handleNav('/Login')}>
-              <User size={18} />
-              <span>Login / Register</span>
-            </button>
-          </li>
         </ul>
 
         <button className="nav-mobile-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -73,12 +67,6 @@ const Navbar = () => {
               </button>
             </li>
           ))}
-          <li>
-            <button className="btn-login" onClick={() => handleNav('/Login')}>
-              <User size={18} />
-              <span>Login / Register</span>
-            </button>
-          </li>
         </ul>
       )}
     </nav>

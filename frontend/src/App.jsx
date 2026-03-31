@@ -10,7 +10,6 @@ import Formulas from './Formulas'
 import Test from './Test'
 import Forum from './Forum'
 import Contact from './Contact'
-import Login from './Login'
 import Curriculum from './curriculum';
 import PreExerciseNotes from './PreExerciseNotes';
 const App = () => {
@@ -27,7 +26,6 @@ const App = () => {
         <Route path="/test" element={<Test />} />
         <Route path="/forum" element={<Forum />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/curriculum" element={<Curriculum />} />
         <Route path="/pre-exercise-notes" element={<PreExerciseNotes />} />
       </Routes>
